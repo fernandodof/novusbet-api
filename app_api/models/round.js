@@ -9,6 +9,6 @@ var roundSchema = new mongoose.Schema({
     championship: {type: mongoose.Schema.Types.ObjectId, ref: 'championship'},
     games: [{type: mongoose.Schema.Types.ObjectId, ref: 'game'}],
     bets: [{type: mongoose.Schema.Types.ObjectId, ref: 'bets'}]
-});
+}, {versionKey: false});
 
 module.exports = mongoose.model('round', roundSchema);

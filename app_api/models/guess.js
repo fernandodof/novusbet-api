@@ -5,6 +5,6 @@ var guessSchema = new mongoose.Schema({
     scoreTeam2: {type: Number, required: true},
     
     game: {type: mongoose.Schema.Types.ObjectId, ref: 'game' }
-});
+}, {versionKey: false});
 
 module.exports = mongoose.model('guess', guessSchema);

@@ -8,6 +8,6 @@ var gameSchema = new mongoose.Schema({
     
     team1: {type: mongoose.Schema.Types.ObjectId, ref: 'team'},
     team2: {type: mongoose.Schema.Types.ObjectId, ref: 'team'}
-});
+}, {versionKey: false});
 
 module.exports = mongoose.model('game', gameSchema);

@@ -9,9 +9,8 @@ var personSchema = new mongoose.Schema({
     active: {type: Boolean, default: true},
     confirmed: {type: Boolean, default: false},
     admin: {type: Boolean, default: false},
-        
     bets: [{type: mongoose.Schema.Types.ObjectId, ref: 'bets'}]
-});
+}, {versionKey: false});
 
 personSchema.pre('save', function (next) {
     var person = this;

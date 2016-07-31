@@ -7,6 +7,6 @@ var championshipSchema = new mongoose.Schema({
     numberOfTeams: {type: Number, default: 20}, 
     
     rounds: [{type: mongoose.Schema.Types.ObjectId, ref: 'rounds'}]
-});
+}, {versionKey: false});
 
 module.exports = mongoose.model('championship', championshipSchema);

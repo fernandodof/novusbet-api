@@ -7,6 +7,6 @@ var betSchema = new mongoose.Schema({
     gambler: {type: mongoose.Schema.Types.ObjectId, ref: 'person'},
     round: {type: mongoose.Schema.Types.ObjectId, ref: 'round'},
     guesses : [{type: mongoose.Schema.Types.ObjectId, ref: 'guess'}]
-});
+}, {versionKey: false});
 
 module.exports = mongoose.model('bet', betSchema);
