@@ -10,52 +10,46 @@ router.route('/')
                     .exec(function (err, teams) {
                         if (err) {
                             return util.sendResponse(res, 500, {
-                                message: 'COMMON_INTERNAL_ERROR',
-                                error: true
+                                message: 'COMMON_INTERNAL_ERROR'
                             });
-                        } else {
-                            if (teams) {
-                                return util.sendResponse(res, 500, {
-                                    data: teams.toObject(),
-                                    message: 'TEAMS_FOUND',
-                                    error: false
-                                });
-                            } else {
-                                return util.sendResponse(res, 500, {
-                                    message: 'TEAMS_NOT_FOUND',
-                                    error: true
-                                });
-                            }
+                        } else if (!teams) {
+                            return util.sendResponse(res, 500, {
+                                message: 'TEAMS_NOT_FOUND'
+                            });
                         }
+
+                        return util.sendResponse(res, 200, {
+                            data: teams,
+                            message: 'TEAMS_FOUND'
+                        });
+
+
                     });
         })
-        .post(function (req, res, next) {
+        .post(function (req, res) {
             var team = req.body;
 
             Team.create(team, function (err, teamCreated) {
                 if (err) {
                     console.log(err);
                     return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR',
-                        error: true
+                        message: 'COMMON_INTERNAL_ERROR'
                     });
                 } else {
                     return util.sendResponse(res, 201, {
-                        data: teamCreated.toJSON(),
-                        message: 'TEAM_CREATED',
-                        error: false
+                        data: teamCreated,
+                        message: 'TEAM_CREATED'
                     });
                 }
             });
         });
 
 router.route('/:id')
-        .get(function (req, res, next) {
+        .get(function (req, res) {
 
             if (!util.validateObjectId(req.params.id)) {
                 return util.sendResponse(res, 500, {
-                    message: 'INVALID_ID',
-                    error: true
+                    message: 'INVALID_ID'
                 });
             }
 
@@ -63,32 +57,28 @@ router.route('/:id')
                 if (err) {
                     console.log(err);
                     return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR',
-                        error: true
+                        message: 'COMMON_INTERNAL_ERROR'
                     });
                 } else if (!team) {
                     return util.sendResponse(res, 404, {
-                        message: 'TEAM_NOT_FOUND',
-                        error: true
+                        message: 'TEAM_NOT_FOUND'
                     });
                 }
-                
+
                 return util.sendResponse(res, 200, {
-                    data: team.toObject(),
-                    message: 'TEAM_FOUND',
-                    error: false
+                    data: team,
+                    message: 'TEAM_FOUND'
                 });
 
 
             });
 
         })
-        .put(function (req, res, next) {
+        .put(function (req, res) {
 
             if (!util.validateObjectId(req.params.id)) {
                 return util.sendResponse(res, 500, {
-                    message: 'INVALID_ID',
-                    error: true
+                    message: 'INVALID_ID'
                 });
             }
 
@@ -99,25 +89,22 @@ router.route('/:id')
                 if (err) {
                     console.log(err);
                     return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR',
-                        error: true
+                        message: 'COMMON_INTERNAL_ERROR'
                     });
                 } else if (!teamUpdate) {
                     return util.sendResponse(res, 500, {
-                        message: 'TEAM_NOT_FOUND',
-                        error: true
+                        message: 'TEAM_NOT_FOUND'
                     });
                 }
 
                 return util.sendResponse(res, 200, {
-                    data: teamUpdate.toObject(),
-                    message: 'TEAM_UPDATED',
-                    error: false
+                    data: teamUpdate,
+                    message: 'TEAM_UPDATED'
                 });
             });
-            
+
         })
-        .delete(function (req, res, next) {
+        .delete(function (req, res) {
             return res.status(200).json({sucess: true, message: 'TODO'});
         });
 

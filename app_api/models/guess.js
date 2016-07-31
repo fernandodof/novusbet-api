@@ -7,4 +7,20 @@ var guessSchema = new mongoose.Schema({
     game: {type: mongoose.Schema.Types.ObjectId, ref: 'game' }
 }, {versionKey: false});
 
+guessSchema.options.toJSON = {
+    transform: function(doc, ret, options) {
+        ret.id = ret._id;
+        delete ret._id;
+        return ret;
+    }
+};
+
+guessSchema.options.toObject = {
+    transform: function(doc, ret, options) {
+        ret.id = ret._id;
+        delete ret._id;
+        return ret;
+    }
+};
+
 module.exports = mongoose.model('guess', guessSchema);

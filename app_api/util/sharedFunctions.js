@@ -1,10 +1,27 @@
 var mongoose = require('mongoose');
 
+var sendResponse = function (res, status, content) {
+    return res.status(status).json(content);
+};
+
+
 module.exports = {
     sendResponse: function (res, status, content) {
-        return res.status(status).json(content);
+        return sendResponse(res, status, content);
     },
-    validateObjectId: function (id){
+    sendResponseFromAsync: function (res, err, result) {
+        if (err) {
+            return sendResponse(res, err.status, {
+                message: err.message
+            });
+        } else {
+            return sendResponse(res, result.status, {
+                message: result.message,
+                data: result.data
+            });
+        }
+    },
+    validateObjectId: function (id) {
         return mongoose.Types.ObjectId.isValid(id);
     }
 };

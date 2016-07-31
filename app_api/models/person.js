@@ -12,6 +12,23 @@ var personSchema = new mongoose.Schema({
     bets: [{type: mongoose.Schema.Types.ObjectId, ref: 'bets'}]
 }, {versionKey: false});
 
+
+personSchema.options.toJSON = {
+    transform: function(doc, ret, options) {
+        ret.id = ret._id;
+        delete ret._id;
+        return ret;
+    }
+};
+
+personSchema.options.toObject = {
+    transform: function(doc, ret, options) {
+        ret.id = ret._id;
+        delete ret._id;
+        return ret;
+    }
+};
+
 personSchema.pre('save', function (next) {
     var person = this;
 

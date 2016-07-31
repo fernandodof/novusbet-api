@@ -11,16 +11,14 @@ router.route('/')
                 if (err) {
                     console.log(err);
                     return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR',
-                        error: true
+                        message: 'COMMON_INTERNAL_ERROR'
                     });
                 } else {
                     var data = personCreated.toObject();
-                    return util.util.sendResponse(res, 201, {
+                    return util.sendResponse(res, 201, {
                         //Find a better way
                         data: _.omit(data, ['password']),
-                        message: 'PERSON_CREATED',
-                        error: false
+                        message: 'PERSON_CREATED'
                     });
                 }
             });
@@ -31,8 +29,7 @@ router.route('/:id')
             
             if (!util.validateObjectId(req.params.id)) {
                 return util.sendResponse(res, 500, {
-                    message: 'INVALID_ID',
-                    error: true
+                    message: 'INVALID_ID'
                 });
             }
 
@@ -40,20 +37,17 @@ router.route('/:id')
                 if (err) {
                     console.log(err);
                     return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR',
-                        error: true
+                        message: 'COMMON_INTERNAL_ERROR'
                     });
                 } else if (!person) {
                     return util.sendResponse(res, 404, {
-                        message: 'PERSON_NOT_FOUND',
-                        error: true
+                        message: 'PERSON_NOT_FOUND'
                     });
                 }
 
                 return util.sendResponse(res, 200, {
-                    data: person.toObject(),
-                    message: 'PERSON_FOUND',
-                    error: false
+                    data: person,
+                    message: 'PERSON_FOUND'
                 });
             });
 
@@ -62,8 +56,7 @@ router.route('/:id')
 
             if (!util.validateObjectId(req.params.id)) {
                 return util.sendResponse(res, 500, {
-                    message: 'INVALID_ID',
-                    error: true
+                    message: 'INVALID_ID'
                 });
             }
 
@@ -74,20 +67,17 @@ router.route('/:id')
                 if (err) {
                     console.log(err);
                     return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR',
-                        error: true
+                        message: 'COMMON_INTERNAL_ERROR'
                     });
                 } else if (!personUpdated) {
                     return util.sendResponse(res, 500, {
-                        message: 'PERSON_NOT_FOUND',
-                        error: true
+                        message: 'PERSON_NOT_FOUND'
                     });
                 }
 
                 return util.sendResponse(res, 200, {
-                    data: personUpdated.toObject(),
-                    message: 'PERSON_UPDATED',
-                    error: false
+                    data: personUpdated,
+                    message: 'PERSON_UPDATED'
                 });
             });
 
