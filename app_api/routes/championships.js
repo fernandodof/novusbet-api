@@ -82,36 +82,54 @@ router.route('/:id')
         })
         .put(function (req, res) {
 
-            if (!util.validateObjectId(req.params.id)) {
-                return util.sendResponse(res, 500, {
-                    message: 'INVALID_ID'
-                });
-            }
+            var errReturn = {status: 500};
 
-            var query = {_id: req.params.id};
-            var update = req.body;
+            async.waterfall([
+                //check id validity
+                function (callback) {
+                    if (!util.validateObjectId(req.params.id)) {
+                        errReturn.message = 'INVALID_ID';
+                        errReturn.status = 400;
+                        return callback(errReturn, null);
+                    }
+                    callback(null, req.params.id);
+                },
+                function (id, callback) {
 
-            Championship.findOneAndUpdate(query, update, {new : true}, function (err, championshipUpdate) {
-                if (err) {
-                    console.log(err);
-                    return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR'
-                    });
-                } else if (!championshipUpdate) {
-                    return util.sendResponse(res, 500, {
-                        message: 'CHAMPIONSHIP_NOT_FOUND'
+                    var query = {_id: id};
+                    var update = req.body;
+
+                    Championship.findOneAndUpdate(query, update, {new : true})
+                            .select('-rounds')
+                            .exec(function (err, championshipUpdated) {
+                        if (err) {
+                            console.log(err);
+                            errReturn.message = 'COMMON_INTERNAL_ERROR';
+                            return callback(errReturn, null);
+                        } else if (!championshipUpdated) {
+                            errReturn.message = 'CHAMPIONSHIP_NOT_FOUND';
+                            return callback(errReturn, null);
+                        }
+
+                        var result = {
+                            message: 'CHAMPIONSHIP_UPDATED',
+                            status: 200,
+                            data: championshipUpdated
+                        };
+
+                        callback(null, result);
                     });
                 }
-
-                return util.sendResponse(res, 200, {
-                    data: championshipUpdate.toObject(),
-                    message: 'CHAMPIONSHIP_UPDATED'
-                });
+            ], function (err, result) {
+                console.log(err, result);
+                util.sendResponseFromAsync(res, err, result);
             });
+
+
 
         })
         .delete(function (req, res) {
-            return res.status(200).json({sucess: true, message: 'TODO'});
+            return res.status(200).json({message: 'TODO'});
         });
 
 router.route('/:id/rounds')
@@ -172,6 +190,7 @@ router.route('/:id/rounds')
                             status: 200,
                             data: round
                         };
+
                         callback(null, result);
                     });
                 }
@@ -182,9 +201,47 @@ router.route('/:id/rounds')
 
         })
         .get(function (req, res) {
+            var errReturn = {status: 500};
 
-        })
-        .put(function (req, res) {
+            async.waterfall([
+                //check id validity
+                function (callback) {
+                    if (!util.validateObjectId(req.params.id)) {
+                        errReturn.message = 'INVALID_ID';
+                        errReturn.status = 400;
+                        return callback(errReturn, null);
+                    }
+                    callback(null, req.params.id);
+                },
+                function (id, callback) {
+                    //find chmapionship
+                    Championship
+                            .findById(id)
+                            .populate('rounds')
+                            .exec(function (err, championship) {
+                                if (err) {
+                                    console.log(err);
+                                    errReturn.message = 'COMMON_INTERNAL_ERROR';
+                                    return callback(errReturn, null);
+                                } else if (!championship) {
+                                    errReturn.message = 'CHAMPIONSHIP_NOT_FOUND';
+                                    return callback(errReturn, null);
+                                }
+
+                                var result = {
+                                    message: 'ROUND_FOUND',
+                                    status: 200,
+                                    data: championship.rounds
+                                };
+
+                                callback(null, result);
+                            });
+                }
+            ], function (err, result) {
+                console.log(err, result);
+                util.sendResponseFromAsync(res, err, result);
+            });
+
 
         });
 
