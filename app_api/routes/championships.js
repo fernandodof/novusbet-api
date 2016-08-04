@@ -3,7 +3,6 @@ var router = express.Router();
 var Championship = require('../models/championship');
 var Round = require('../models/round');
 var util = require('../util/sharedFunctions');
-var _ = require('lodash');
 var async = require('async');
 
 router.route('/')
@@ -16,7 +15,7 @@ router.route('/')
                                 message: 'COMMON_INTERNAL_ERROR'
                             });
                         } else if (!championships) {
-                            return util.sendResponse(res, 500, {
+                            return util.sendResponse(res, 404, {
                                 message: 'CHAMPIONSHIPS_NOT_FOUND'
                             });
                         }
@@ -34,7 +33,6 @@ router.route('/')
 
             Championship.create(championship, function (err, championshipCreated) {
                 if (err) {
-                    console.log(err);
                     return util.sendResponse(res, 500, {
                         message: 'COMMON_INTERNAL_ERROR'
                     });
@@ -50,47 +48,46 @@ router.route('/')
 router.route('/:id')
         .get(function (req, res) {
 
-            if (!util.validateObjectId(req.params.id)) {
-                return util.sendResponse(res, 500, {
-                    message: 'INVALID_ID',
-                    error: true
-                });
-            }
+            async.waterfall([
+                function (callback) {
+                    if (!util.validateObjectId(req.params.id)) {
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
+                    }
+                    callback(null, req.params.id);
+                }, function (id, callback) {
 
-            Championship.findById(req.params.id)
-                    .populate('rounds')
-                    .exec(function (err, championship) {
-                        if (err) {
-                            console.log(err);
-                            return util.sendResponse(res, 500, {
-                                message: 'COMMON_INTERNAL_ERROR'
+                    Championship.findById(id)
+                            .populate('rounds')
+                            .exec(function (err, championship) {
+                                if (err) {
+                                    return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                                } else if (!championship) {
+                                    return callback(util.createErrorObject('CHAMPIONSHIP_NOT_FOUND', 404), null);
+                                }
+
+                                var result = {
+                                    message: 'CHAMPIONSHIP_FOUND',
+                                    status: 200,
+                                    data: championship
+                                };
+
+                                callback(null, result);
+
                             });
-                        } else if (!championship) {
-                            return util.sendResponse(res, 404, {
-                                message: 'CHAMPIONSHIP_NOT_FOUND'
-                            });
-                        }
+                }
+            ], function (err, result) {
+                util.sendResponseFromAsync(res, err, result);
+            });
 
-                        return util.sendResponse(res, 200, {
-                            data: championship,
-                            message: 'CHAMPIONSHIP_FOUND'
-                        });
-
-
-                    });
 
         })
         .put(function (req, res) {
-
-            var errReturn = {status: 500};
 
             async.waterfall([
                 //check id validity
                 function (callback) {
                     if (!util.validateObjectId(req.params.id)) {
-                        errReturn.message = 'INVALID_ID';
-                        errReturn.status = 400;
-                        return callback(errReturn, null);
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
                     }
                     callback(null, req.params.id);
                 },
@@ -102,26 +99,22 @@ router.route('/:id')
                     Championship.findOneAndUpdate(query, update, {new : true})
                             .select('-rounds')
                             .exec(function (err, championshipUpdated) {
-                        if (err) {
-                            console.log(err);
-                            errReturn.message = 'COMMON_INTERNAL_ERROR';
-                            return callback(errReturn, null);
-                        } else if (!championshipUpdated) {
-                            errReturn.message = 'CHAMPIONSHIP_NOT_FOUND';
-                            return callback(errReturn, null);
-                        }
+                                if (err) {
+                                    return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                                } else if (!championshipUpdated) {
+                                    return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                                }
 
-                        var result = {
-                            message: 'CHAMPIONSHIP_UPDATED',
-                            status: 200,
-                            data: championshipUpdated
-                        };
+                                var result = {
+                                    message: 'CHAMPIONSHIP_UPDATED',
+                                    status: 200,
+                                    data: championshipUpdated
+                                };
 
-                        callback(null, result);
-                    });
+                                callback(null, result);
+                            });
                 }
             ], function (err, result) {
-                console.log(err, result);
                 util.sendResponseFromAsync(res, err, result);
             });
 
@@ -135,14 +128,11 @@ router.route('/:id')
 router.route('/:id/rounds')
         .post(function (req, res) {
 
-            var errReturn = {status: 500};
             async.waterfall([
                 //check id validity
                 function (callback) {
                     if (!util.validateObjectId(req.params.id)) {
-                        errReturn.message = 'INVALID_ID';
-                        errReturn.status = 400;
-                        return callback(errReturn, null);
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
                     }
                     callback(null, req.params.id);
                 },
@@ -150,12 +140,9 @@ router.route('/:id/rounds')
                 function (id, callback) {
                     Championship.findById(id, function (err, championship) {
                         if (err) {
-                            console.log(err);
-                            errReturn.message = 'COMMON_INTERNAL_ERROR';
-                            return callback(errReturn, null);
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
                         } else if (!championship) {
-                            errReturn.message = 'CHAMPIONSHIP_NOT_FOUND';
-                            return callback(errReturn, null);
+                            return callback(util.createErrorObject('CHAMPIONSHIP_NOT_FOUND', 404), null);
                         }
 
                         callback(null, championship);
@@ -168,8 +155,7 @@ router.route('/:id/rounds')
                     newRound.chmapionship = championship._id;
                     newRound.save(function (err, round) {
                         if (err) {
-                            errReturn.message = 'COMMON_INTERNAL_ERROR';
-                            return callback(errReturn, null);
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
                         }
 
                         callback(null, championship, round);
@@ -181,8 +167,7 @@ router.route('/:id/rounds')
                     championship.save(function (err) {
 
                         if (err) {
-                            errReturn.message = 'COMMON_INTERNAL_ERROR';
-                            return callback(errReturn, null);
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
                         }
 
                         var result = {
@@ -195,21 +180,17 @@ router.route('/:id/rounds')
                     });
                 }
             ], function (err, result) {
-                console.log(err, result);
                 util.sendResponseFromAsync(res, err, result);
             });
 
         })
         .get(function (req, res) {
-            var errReturn = {status: 500};
 
             async.waterfall([
                 //check id validity
                 function (callback) {
                     if (!util.validateObjectId(req.params.id)) {
-                        errReturn.message = 'INVALID_ID';
-                        errReturn.status = 400;
-                        return callback(errReturn, null);
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
                     }
                     callback(null, req.params.id);
                 },
@@ -220,12 +201,9 @@ router.route('/:id/rounds')
                             .populate('rounds')
                             .exec(function (err, championship) {
                                 if (err) {
-                                    console.log(err);
-                                    errReturn.message = 'COMMON_INTERNAL_ERROR';
-                                    return callback(errReturn, null);
+                                    return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
                                 } else if (!championship) {
-                                    errReturn.message = 'CHAMPIONSHIP_NOT_FOUND';
-                                    return callback(errReturn, null);
+                                    return callback(util.createErrorObject('CHAMPIONSHIP_NOT_FOUND', 404), null);
                                 }
 
                                 var result = {
@@ -238,7 +216,6 @@ router.route('/:id/rounds')
                             });
                 }
             ], function (err, result) {
-                console.log(err, result);
                 util.sendResponseFromAsync(res, err, result);
             });
 

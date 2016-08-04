@@ -22,4 +22,4 @@ teamSchema.options.toObject = {
     }
 };
 
-module.exports = mongoose.model('time', teamSchema);
+module.exports = mongoose.model('team', teamSchema);

@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var Team = require('../models/team');
 var util = require('../util/sharedFunctions');
+var async = require('async');
 
 router.route('/')
         .get(function (req, res) {
@@ -47,61 +48,70 @@ router.route('/')
 router.route('/:id')
         .get(function (req, res) {
 
-            if (!util.validateObjectId(req.params.id)) {
-                return util.sendResponse(res, 500, {
-                    message: 'INVALID_ID'
-                });
-            }
+            async.waterfall([
+                function (callback) {
+                    if (!util.validateObjectId(req.params.id)) {
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
+                    }
+                    callback(null, req.params.id);
+                },
+                function (id, callback) {
+                    Team.findById(id, function (err, team) {
+                        if (err) {
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                        } else if (!team) {
+                            return callback(util.createErrorObject('TEAM_NOT_FOUND', 404), null);
+                        }
 
-            Team.findById(req.params.id, function (err, team) {
-                if (err) {
-                    console.log(err);
-                    return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR'
+                        var result = {
+                            message: 'TEAM_FOUND',
+                            status: 200,
+                            data: team
+                        };
+
+                        callback(null, result);
                     });
-                } else if (!team) {
-                    return util.sendResponse(res, 404, {
-                        message: 'TEAM_NOT_FOUND'
-                    });
+
                 }
-
-                return util.sendResponse(res, 200, {
-                    data: team,
-                    message: 'TEAM_FOUND'
-                });
-
-
+            ], function (err, result) {
+                util.sendResponseFromAsync(res, err, result);
             });
+
 
         })
         .put(function (req, res) {
 
-            if (!util.validateObjectId(req.params.id)) {
-                return util.sendResponse(res, 500, {
-                    message: 'INVALID_ID'
-                });
-            }
+            async.waterfall([
+                function (callback) {
+                    if (!util.validateObjectId(req.params.id)) {
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
+                    }
+                    callback(null, req.params.id);
+                },
+                function (id, callback) {
+                    var query = {_id: id};
+                    var update = req.body;
 
-            var query = {_id: req.params.id};
-            var update = req.body;
+                    Team.findOneAndUpdate(query, update, {new : true}, function (err, teamUpdated) {
+                        if (err) {
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                        } else if (!teamUpdated) {
+                            return callback(util.createErrorObject('TEAM_NOT_FOUND', 404), null);
+                        }
 
-            Team.findOneAndUpdate(query, update, {new : true}, function (err, teamUpdate) {
-                if (err) {
-                    console.log(err);
-                    return util.sendResponse(res, 500, {
-                        message: 'COMMON_INTERNAL_ERROR'
-                    });
-                } else if (!teamUpdate) {
-                    return util.sendResponse(res, 500, {
-                        message: 'TEAM_NOT_FOUND'
+                        var result = {
+                            message: 'TEAM_UPDATED',
+                            status: 200,
+                            data: teamUpdated
+                        };
+
+                        callback(null, result);
                     });
                 }
-
-                return util.sendResponse(res, 200, {
-                    data: teamUpdate,
-                    message: 'TEAM_UPDATED'
-                });
+            ], function (err, result) {
+                util.sendResponseFromAsync(res, err, result);
             });
+
 
         })
         .delete(function (req, res) {

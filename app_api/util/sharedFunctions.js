@@ -23,5 +23,11 @@ module.exports = {
     },
     validateObjectId: function (id) {
         return mongoose.Types.ObjectId.isValid(id);
+    },
+    createErrorObject: function (message, status){
+        return {
+            status: status || 500,
+            message: message
+        };
     }
 };
