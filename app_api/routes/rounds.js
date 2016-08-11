@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Round = require('../models/round');
+var Game = require('../models/game');
 var util = require('../util/sharedFunctions');
 var async = require('async');
 
@@ -72,6 +73,63 @@ router.route('/:id')
             ], function (err, result) {
                 util.sendResponseFromAsync(res, err, result);
             });
+        });
+
+router.route('/:id/games')
+        .post(function (req, res) {
+            async.waterfall([
+                //check id validity
+                function (callback) {
+                    if (!util.validateObjectId(req.params.id)) {
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
+                    }
+                    callback(null, req.params.id);
+                },
+                //find round
+                function (id, callback) {
+                    Round.findById(id, function (err, round) {
+                        if (err) {
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                        } else if (!round) {
+                            return callback(util.createErrorObject('ROUND_NOT_FOUND', 404), null);
+                        }
+                        callback(null, round);
+                    });
+                },
+                //create championship
+                function (round, callback) {
+                    var newGame = new Game(req.body);
+                    newGame.save(function (err, game) {
+                        if (err) {
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                        }
+
+                        callback(null, round, game);
+                    });
+                },
+                //Associate round and game
+                function (round, game, callback) {
+                    round.games.push(game._id);
+
+                    round.save(function (err) {
+                        if (err) {
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                        }
+
+                        var result = {
+                            message: 'GAME_CREATED',
+                            status: 200,
+                            data: game
+                        };
+
+                        callback(null, result);
+                    });
+
+                }
+            ], function (err, result) {
+                util.sendResponseFromAsync(res, err, result);
+            });
+
         });
 
 module.exports = router;
