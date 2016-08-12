@@ -76,6 +76,39 @@ router.route('/:id')
         });
 
 router.route('/:id/games')
+        .get(function (req, res) {
+            async.waterfall([
+                //check id validity
+                function (callback) {
+                    if (!util.validateObjectId(req.params.id)) {
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
+                    }
+                    callback(null, req.params.id);
+                },
+                //find round
+                function (id, callback) {
+                    Round.findById(id)
+                            .populate('games')
+                            .exec(function (err, round) {
+                                if (err) {
+                                    return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                                } else if (!round) {
+                                    return callback(util.createErrorObject('ROUND_NOT_FOUND', 404), null);
+                                }
+
+                                var result = {
+                                    message: 'GAMES_FOUND',
+                                    status: 200,
+                                    data: round.games
+                                };
+
+                                callback(null, result);
+                            });
+                }
+            ], function (err, result) {
+                util.sendResponseFromAsync(res, err, result);
+            });
+        })
         .post(function (req, res) {
             async.waterfall([
                 //check id validity
@@ -130,6 +163,32 @@ router.route('/:id/games')
                 util.sendResponseFromAsync(res, err, result);
             });
 
+        });
+
+router.route('/:id/apostas')
+        .post(function (req, res) {
+            async.waterfall([
+                //check id validity
+                function (callback) {
+                    if (!util.validateObjectId(req.params.id)) {
+                        return callback(util.createErrorObject('INVALID_ID', 400), null);
+                    }
+                    callback(null, req.params.id);
+                },
+                function (id){
+                    var newGuesses = req.body;
+                    if(newGuesses.lenght !== 10){
+                        return callback(util.createErrorObject('INVALID_GUESSES_AMOUNT_EXPECTED_10', 400), null);
+                    }
+                    
+                    callback(id, newGuesses);
+                },
+                function (id, newGuesses){
+                    //TO BE CONTINUED
+                }
+            ], function (err, result) {
+                util.sendResponseFromAsync(res, err, result);
+            });
         });
 
 module.exports = router;
