@@ -2,8 +2,12 @@ var express = require('express');
 var router = express.Router();
 var Round = require('../models/round');
 var Game = require('../models/game');
+var Bet = require('../models/bet');
+var Guess = require('../models/guess');
 var util = require('../util/sharedFunctions');
 var async = require('async');
+var _ = require('lodash');
+var Promise = require('bluebird');
 
 router.route('/:id')
         .get(function (req, res) {
@@ -165,8 +169,11 @@ router.route('/:id/games')
 
         });
 
-router.route('/:id/apostas')
+router.route('/:id/bets')
         .post(function (req, res) {
+            var newGuesses = req.body;
+            //newGuesses = _.toArray(newGuesses.guesses);
+
             async.waterfall([
                 //check id validity
                 function (callback) {
@@ -175,20 +182,87 @@ router.route('/:id/apostas')
                     }
                     callback(null, req.params.id);
                 },
-                function (id){
-                    var newGuesses = req.body;
-                    if(newGuesses.lenght !== 10){
+                //count number of guesses
+                function (id, callback) {
+                    if (newGuesses.guesses.length !== 10) {
                         return callback(util.createErrorObject('INVALID_GUESSES_AMOUNT_EXPECTED_10', 400), null);
                     }
-                    
-                    callback(id, newGuesses);
+
+                    callback(null, id, newGuesses);
                 },
-                function (id, newGuesses){
-                    //TO BE CONTINUED
+                //check if games ids exists and are different
+                function (id, newGuesses, callback) {
+                    checkIds(newGuesses.guesses).then(function (response) {
+                        //insert all guesses
+                        Guess.collection.insert(newGuesses.guesses, function (err, guesses) {
+                            if (err) {
+                                return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                            }
+                            callback(null, id, guesses);
+                        });
+
+                    }, function (error) {
+                        return callback(util.createErrorObject('INVALID_GAMES_AMOUNT_EXPECTED_10'), null);
+                    });
+                },
+                //associate bet and guesses
+                function (id, guessesInserted, callback) {
+                    var newBet = new Bet();
+                    newBet.gambler = newGuesses.gambler;
+                    newBet.round = id;
+                    newBet.guesses = guessesInserted.insertedIds;
+
+                    newBet.save(function (err, bet) {
+                        if (err) {
+                            return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                        }
+
+                        callback(null, bet.id);
+
+                    });
+                },
+                //get id bet and return
+                function (betId, callback) {
+                    Bet.findById(betId)
+                            .populate('guesses')
+                            .exec(function (err, bet) {
+
+                                if (err) {
+                                    return callback(util.createErrorObject('COMMON_INTERNAL_ERROR'), null);
+                                }
+
+                                var result = {
+                                    message: 'GUESSES_CREATED',
+                                    status: 200,
+                                    data: bet
+                                };
+
+                                callback(null, result);
+                            });
                 }
             ], function (err, result) {
                 util.sendResponseFromAsync(res, err, result);
             });
         });
+
+var checkIds = function (guesses) {
+
+    var ids = guesses.map(function (guess) {
+        return guess.game;
+    });
+
+    var ids = _.uniq(ids);
+
+    return new Promise(function (resolve, reject) {
+
+        Game.count({'_id': {$in: ids}}, function (err, count) {
+            if (err || count !== 10) {
+                reject(false);
+            } else {
+                resolve(true);
+            }
+        });
+    });
+};
 
 module.exports = router;
